@@ -36,7 +36,6 @@ El bot publica un informe diario con el estado actual de la aldea y plantea una 
 │   └── workflows/
 │       └── ejecucion.yml    # Configuración de GitHub Actions (cron + ejecucion manual)
 ├── bot.py                   # Lógica principal del juego y conexión con la API
-├── estado_base.json         # Plantilla con los valores iniciales del Día 1
 ├── estado.json              # Registro del estado actual de la partida
 ├── requirements.txt         # Dependencias del proyecto (Mastodon.py)
 ├── .gitignore
