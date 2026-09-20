@@ -7,8 +7,8 @@ from mastodon import Mastodon
 # 1. CONFIGURACIÓN Y VALORES INICIALES
 # ==============================================================================
 
-ACCESS_TOKEN = 'yxV2giz8Ug6Y2r1iHIR4_mBubHBrxusXKSsNRKiKpLw'
-API_BASE_URL = 'https://mastodon.social'  # Cambia por la URL de tu instancia
+ACCESS_TOKEN = 'token mastodon'
+API_BASE_URL = 'url instancia mastodon'  # Cambia por la URL de tu instancia
 ARCHIVO_ESTADO = 'estado.json'
 
 ESTADO_INICIAL = {
