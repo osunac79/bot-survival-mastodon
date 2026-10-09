@@ -1,5 +1,6 @@
 import os
 import json
+import copy
 import random
 from mastodon import Mastodon
 
@@ -8,7 +9,21 @@ from mastodon import Mastodon
 # ==========================================
 
 MASTODON_TOKEN = os.environ.get("MASTODON_TOKEN")
-MASTODON_BASE_URL = os.environ.get("MASTODON_BASE_URL", "https://mastodon.social")
+# "or" en lugar del valor por defecto de get(): así también funciona si el secret existe pero está vacío
+MASTODON_BASE_URL = os.environ.get("MASTODON_BASE_URL") or "https://mastodon.social"
+# Límite de caracteres por toot de tu instancia (500 en la mayoría). Se puede cambiar con la variable MASTODON_MAX_CHARS
+LIMITE_CARACTERES = int(os.environ.get("MASTODON_MAX_CHARS") or 500)
+# 23 h en lugar de 24 h: así la encuesta siempre está cerrada cuando el cron del día siguiente la lee,
+# aunque GitHub retrase la ejecución unos minutos
+DURACION_ENCUESTA = 23 * 3600
+
+# --- Mecánicas de comunidad (seguidores) ---
+SEGUIDORES_POR_BLOQUE = 10     # cada 10 seguidores nuevos...
+POBLACION_POR_BLOQUE = 3       # ...llegan 3 supervivientes al refugio
+SEGUIDORES_POR_HITO = 25       # cada 25 seguidores nuevos se alcanza un hito
+MAX_SALUDOS_POR_DIA = 8        # máximo de @menciones de bienvenida por día (el resto se resume en una línea)
+MAX_IDS_RECORDADOS = 300       # seguidores ya saludados que se recuerdan en estado.json
+
 
 def obtener_cliente_mastodon():
     if not MASTODON_TOKEN:
@@ -227,25 +242,185 @@ OPCIONES_ENCUESTA = [
 ]
 
 # ==========================================
+# HITOS DE LA COMUNIDAD (cada 25 seguidores nuevos)
+# ==========================================
+# Clave = número de hito (1 = 25 seguidores nuevos, 2 = 50, 3 = 75...).
+# Cada hito aplica sus efectos al refugio y, si trae "encuesta", la añade a las decisiones posibles.
+# Pasado el último hito, cada 25 seguidores más se usa HITO_GENERICO.
+
+HITOS = {
+    1: {
+        "titulo": "🩺 Llega un MÉDICO al refugio",
+        "texto": "Con su ayuda los heridos se recuperan antes y la gente respira más tranquila.",
+        "efectos": {"moral": 10, "poblacion": 1},
+        "encuesta": {
+            "pregunta": "El médico necesita material para atender a los heridos. ¿Qué hacemos?",
+            "opciones": [
+                {"texto": "🏥 Montar una enfermería", "efectos": {"moral": 15, "suministros": -10}},
+                {"texto": "💊 Buscar medicinas en la farmacia", "efectos": {"suministros": 15, "poblacion": -1}},
+                {"texto": "🩹 Improvisar con lo que hay", "efectos": {"moral": -5, "suministros": 5}}
+            ]
+        }
+    },
+    2: {
+        "titulo": "⚡ El refugio consigue un GENERADOR",
+        "texto": "Por fin hay luz por las noches y la radio funciona sin parar.",
+        "efectos": {"moral": 10, "barricadas": 5},
+        "encuesta": {
+            "pregunta": "El generador gasta mucho combustible. ¿Cómo lo usamos?",
+            "opciones": [
+                {"texto": "💡 Luz toda la noche", "efectos": {"moral": 15, "suministros": -10}},
+                {"texto": "📻 Solo para la radio", "efectos": {"moral": 5, "poblacion": 1}},
+                {"texto": "🔌 Apagarlo para ahorrar", "efectos": {"suministros": 10, "moral": -10}}
+            ]
+        }
+    },
+    3: {
+        "titulo": "🔭 Se levanta una TORRE DE VIGILANCIA",
+        "texto": "Los vigías ven venir las hordas desde lejos y las barricadas aguantan mejor.",
+        "efectos": {"barricadas": 20},
+        "encuesta": {
+            "pregunta": "¿Cómo organizamos las guardias en la torre?",
+            "opciones": [
+                {"texto": "🌙 Doble turno de noche", "efectos": {"barricadas": 10, "moral": -10}},
+                {"texto": "🔄 Turnos rotativos para todos", "efectos": {"moral": 10, "barricadas": 5}},
+                {"texto": "🎯 Solo los mejores tiradores", "efectos": {"barricadas": 15, "moral": -5}}
+            ]
+        }
+    },
+    4: {
+        "titulo": "📡 Llega un CONVOY DE AYUDA (¡hito épico!)",
+        "texto": "Una señal de radio guía hasta el refugio a un convoy cargado de víveres y supervivientes.",
+        "efectos": {"poblacion": 5, "suministros": 25, "moral": 15},
+        "encuesta": {
+            "pregunta": "El jefe del convoy propone una alianza con otros refugios. ¿Qué respondemos?",
+            "opciones": [
+                {"texto": "🤝 Aceptar la alianza", "efectos": {"poblacion": 3, "suministros": 15, "moral": 10}},
+                {"texto": "📦 Solo intercambiar víveres", "efectos": {"suministros": 20, "moral": 5}},
+                {"texto": "🔒 Mantenernos aislados", "efectos": {"barricadas": 10, "moral": -5}}
+            ]
+        }
+    },
+    5: {
+        "titulo": "🌱 Nace un HUERTO en el patio",
+        "texto": "Las primeras verduras ya crecen y el grupo tiene algo que cuidar entre todos.",
+        "efectos": {"suministros": 15, "moral": 5},
+        "encuesta": {
+            "pregunta": "El huerto necesita agua y vigilancia. ¿Qué prioridad le damos?",
+            "opciones": [
+                {"texto": "💧 Recoger agua de lluvia", "efectos": {"suministros": 15}},
+                {"texto": "🌿 Que todos ayuden a cuidarlo", "efectos": {"suministros": 20, "barricadas": -5}},
+                {"texto": "🚧 Cercarlo contra saqueadores", "efectos": {"barricadas": 10, "suministros": 5}}
+            ]
+        }
+    },
+    6: {
+        "titulo": "🔧 Se abre un TALLER de refuerzos",
+        "texto": "Con herramientas y chatarra, el refugio fabrica defensas mucho más sólidas.",
+        "efectos": {"barricadas": 20, "moral": 5},
+        "encuesta": {
+            "pregunta": "¿Qué fabricamos primero en el taller?",
+            "opciones": [
+                {"texto": "🪤 Trampas para las hordas", "efectos": {"barricadas": 15, "suministros": -5}},
+                {"texto": "🚪 Puertas blindadas", "efectos": {"barricadas": 25, "suministros": -10}},
+                {"texto": "🛠️ Herramientas para todos", "efectos": {"moral": 10, "suministros": -5}}
+            ]
+        }
+    },
+    7: {
+        "titulo": "🐕 Un PERRO GUARDIÁN se une al grupo",
+        "texto": "Avisa de los intrusos antes que nadie y es la mascota más querida del refugio.",
+        "efectos": {"moral": 10, "barricadas": 5},
+        "encuesta": {
+            "pregunta": "El perro huele algo raro en el bosque. ¿Le seguimos?",
+            "opciones": [
+                {"texto": "🌲 Seguirlo con una patrulla", "efectos": {"suministros": 20, "barricadas": -5}},
+                {"texto": "🐾 Dejar que vaya solo", "efectos": {"suministros": 10, "moral": 5}},
+                {"texto": "🛑 Mantenerlo en el refugio", "efectos": {"moral": 5}}
+            ]
+        }
+    },
+    8: {
+        "titulo": "🏆 El refugio se convierte en LEYENDA",
+        "texto": "Otros supervivientes hablan de este lugar por radio y todos quieren venir.",
+        "efectos": {"poblacion": 5, "suministros": 20, "barricadas": 20, "moral": 20},
+        "encuesta": {
+            "pregunta": "Llegan decenas de refugiados. ¿Ampliamos el refugio?",
+            "opciones": [
+                {"texto": "🏗️ Ampliar con un segundo muro", "efectos": {"poblacion": 5, "barricadas": 10, "suministros": -15}},
+                {"texto": "📋 Admitir solo por turnos", "efectos": {"poblacion": 2, "moral": 5}},
+                {"texto": "🚷 Cerrar las puertas", "efectos": {"barricadas": 10, "moral": -10}}
+            ]
+        }
+    }
+}
+
+HITO_GENERICO = {
+    "titulo": "📦 La comunidad llega con un CARGAMENTO",
+    "texto": "El refugio sigue creciendo y los recién llegados traen provisiones para todos.",
+    "efectos": {"suministros": 15, "moral": 10, "poblacion": 2}
+}
+
+# ==========================================
+# BIENVENIDAS A NUEVOS SEGUIDORES (20 VARIANTES)
+# ==========================================
+# {u} se sustituye por la @mención del nuevo seguidor (así le llega la notificación).
+
+SALUDOS = [
+    "🧟 {u} ha cruzado el cementerio sin que le mordieran y llega al refugio. ¡Bienvenido, superviviente!",
+    "🔦 {u} aparece en la puerta con una linterna y cara de cansancio. ¡Pasa, que hay sopa caliente!",
+    "🥫 {u} trae latas de conserva. Desde hoy es oficialmente nuestro héroe. ¡Bienvenido!",
+    "🚪 Alguien llama a la puerta... ¡es {u}! Abrimos las barricadas un momento para dejarle entrar.",
+    "🩹 {u} llega cojeando pero vivo. Nos viene bien otro par de manos. ¡Bienvenido al refugio!",
+    "🔥 {u} se sienta junto a la hoguera del refugio. Un superviviente más en el grupo. ¡Bienvenido!",
+    "🎒 {u} entra con la mochila a medio vaciar y una sonrisa. ¡Un nuevo vecino en pleno apocalipsis!",
+    "🛡️ {u} se ofrece para hacer guardia esta noche. ¡Menudo valiente! Bienvenido al grupo.",
+    "📻 La radio crepita y avisa: {u} ya está en la puerta. ¡Bienvenido, te esperábamos!",
+    "🧱 {u} ayuda a reforzar las barricadas nada más llegar. ¡Así da gusto! Bienvenido.",
+    "🌙 Entre las sombras aparece {u}. No es un zombi, ¡es un nuevo superviviente! Bienvenido.",
+    "🍞 {u} ha encontrado pan en una tienda abandonada y lo comparte con todos. ¡Gracias y bienvenido!",
+    "🧭 {u} se perdió por el bosque pero ha encontrado el refugio. ¡Ya estás a salvo!",
+    "🕯️ {u} enciende una vela por los que no llegaron y se une a nosotros. Bienvenido al refugio.",
+    "🏃 {u} llega corriendo con una horda detrás. ¡Cerrad la puerta! ...Bienvenido, superviviente.",
+    "🔧 {u} sabe arreglar generadores y radios. ¡Menuda suerte que se una a nosotros! Bienvenido.",
+    "🐕 {u} llega acompañado de un perro rastreador. ¡Los dos son bienvenidos en el refugio!",
+    "☕ {u} trae café. En pleno apocalipsis. Esa persona se queda. ¡Bienvenido!",
+    "🧪 {u} dice que sabe de medicina. Esperemos que no sea de las de internet 😅 ¡Bienvenido!",
+    "🏚️ {u} lleva semanas sobreviviendo en solitario y por fin encuentra gente. Aquí tienes un hogar."
+]
+
+# ==========================================
 # GESTIÓN DE ARCHIVO DE ESTADO
 # ==========================================
 
 FICHERO_ESTADO = "estado.json"
 
+ESTADO_INICIAL = {
+    "dia": 0,  # el primer informe que se publique será el DÍA 1
+    "poblacion": 12,
+    "suministros": 80,
+    "barricadas": 100,
+    "moral": 75,
+    "terminado": False,
+    "ultima_encuesta_id": None,
+    "opciones_ultima_encuesta": [],
+    # --- comunidad (seguidores) ---
+    "seguidores_base": None,          # seguidores al estrenar esta versión; solo cuentan los nuevos
+    "seguidores_progreso": 0,         # máximo de seguidores nuevos alcanzado
+    "bloques_pagados": 0,             # bloques de 10 seguidores ya convertidos en población
+    "hitos_reclamados": 0,            # hitos de 25 seguidores ya aplicados
+    "encuestas_desbloqueadas": [],    # hitos cuya encuesta ya forma parte del juego
+    "seguidores_saludados": []        # ids de seguidores que ya han recibido bienvenida
+}
+
+
 def cargar_estado():
-    if not os.path.exists(FICHERO_ESTADO):
-        return {
-            "dia": 1,
-            "poblacion": 25,
-            "suministros": 100,
-            "barricadas": 100,
-            "moral": 100,
-            "historial_eventos": [],
-            "ultima_encuesta_id": None,
-            "opciones_ultima_encuesta": []
-        }
-    with open(FICHERO_ESTADO, "r", encoding="utf-8") as f:
-        return json.load(f)
+    estado = copy.deepcopy(ESTADO_INICIAL)
+    if os.path.exists(FICHERO_ESTADO):
+        with open(FICHERO_ESTADO, "r", encoding="utf-8") as f:
+            estado.update(json.load(f))  # compatible con estado.json de versiones anteriores
+    return estado
+
 
 def guardar_estado(estado):
     with open(FICHERO_ESTADO, "w", encoding="utf-8") as f:
@@ -254,6 +429,35 @@ def guardar_estado(estado):
 # ==========================================
 # LÓGICA PRINCIPAL DEL JUEGO
 # ==========================================
+
+CLAVES_PORCENTUALES = ("suministros", "barricadas", "moral")
+
+ETIQUETAS_EFECTOS = {
+    "poblacion": "👥 población",
+    "suministros": "🥖 suministros",
+    "barricadas": "🧱 barricadas",
+    "moral": "🕯️ moral"
+}
+
+
+class EncuestaAbierta(Exception):
+    """La encuesta anterior todavía no ha terminado: hoy no se publica nada."""
+
+
+def aplicar_efectos(estado, efectos):
+    for clave, cambio in efectos.items():
+        if clave not in ETIQUETAS_EFECTOS:
+            continue
+        estado[clave] += cambio
+        if clave in CLAVES_PORCENTUALES:
+            estado[clave] = max(0, min(100, estado[clave]))
+        else:
+            estado[clave] = max(0, estado[clave])
+
+
+def hay_game_over(estado):
+    return estado["poblacion"] <= 0 or estado["suministros"] <= 0 or estado["moral"] <= 0
+
 
 def procesar_evento_nocturno(estado):
     dado = random.randint(1, 100)
@@ -267,102 +471,274 @@ def procesar_evento_nocturno(estado):
     else:
         evento = random.choice(EVENTOS_GRAVES)
 
-    efectos = evento.get("efectos", {})
-    for clave, cambio in efectos.items():
-        if clave in estado:
-            estado[clave] += cambio
-            if clave in ["suministros", "barricadas", "moral"]:
-                estado[clave] = max(0, min(100, estado[clave]))
-            elif clave == "poblacion":
-                estado[clave] = max(0, estado[clave])
-
+    aplicar_efectos(estado, evento.get("efectos", {}))
     return evento["texto"]
 
+
 def resolver_encuesta_anterior(client, estado):
+    """Aplica los efectos de la opción ganadora. Si algo falla, lanza la excepción
+    (el workflow queda en rojo y no se publica nada) para no perder los votos de la comunidad."""
     if not estado.get("ultima_encuesta_id") or not estado.get("opciones_ultima_encuesta"):
         return ""
 
+    status = client.status(estado["ultima_encuesta_id"])
+    poll = status.get("poll")
+    if not poll:
+        raise RuntimeError("El post anterior no tiene encuesta; no se puede resolver la decisión.")
+    if not poll.get("expired", True):
+        raise EncuestaAbierta("La encuesta anterior sigue abierta; hoy no se publica nada.")
+
+    votos = [option["votes_count"] or 0 for option in poll["options"]]
+    if len(votos) != len(estado["opciones_ultima_encuesta"]):
+        raise RuntimeError("Las opciones guardadas no coinciden con las de la encuesta publicada.")
+
+    max_votos = max(votos)
+    # Si hay empate (incluido 0 votos en todas), se elige al azar entre las empatadas
+    empatadas = [i for i, v in enumerate(votos) if v == max_votos]
+    ganadora_idx = random.choice(empatadas)
+
+    opcion_elegida = estado["opciones_ultima_encuesta"][ganadora_idx]
+    aplicar_efectos(estado, opcion_elegida.get("efectos", {}))
+
+    return (
+        f"📊 Resolución de la decisión anterior: ganó '{opcion_elegida['texto']}' "
+        f"con {votos[ganadora_idx]} voto(s).\n\n"
+    )
+
+# ==========================================
+# COMUNIDAD: SEGUIDORES, HITOS Y BIENVENIDAS
+# ==========================================
+
+
+def resumen_efectos(efectos):
+    partes = [f"{v:+d} {ETIQUETAS_EFECTOS[k]}" for k, v in efectos.items() if k in ETIQUETAS_EFECTOS and v]
+    return "Efecto: " + ", ".join(partes)
+
+
+def texto_hito(k, hito):
+    nuevos = k * SEGUIDORES_POR_HITO
+    texto = (
+        f"🎉 ¡HITO DE LA COMUNIDAD! Ya son {nuevos} los seguidores nuevos que se unen a la lucha.\n\n"
+        f"{hito['titulo']}\n{hito['texto']}\n\n"
+        f"{resumen_efectos(hito['efectos'])}"
+    )
+    if hito.get("encuesta"):
+        texto += "\n\n🗳️ ¡Nueva decisión desbloqueada para las próximas encuestas!"
+    return texto
+
+
+def obtener_datos_comunidad(client):
+    """Devuelve (total de seguidores, [(id, acct), ...]) con los 80 seguidores más recientes primero."""
+    cuenta = client.account_verify_credentials()
+    seguidores = client.account_followers(cuenta["id"], limit=80)
+    return cuenta["followers_count"], [(str(s["id"]), s["acct"]) for s in seguidores]
+
+
+def procesar_comunidad(client, estado):
+    """Aplica los efectos de los seguidores nuevos sobre el estado.
+    Devuelve (anuncios, accts_nuevos, encuesta_desbloqueada)."""
+    anuncios = []
+    encuesta_nueva = None
+
     try:
-        status = client.status(estado["ultima_encuesta_id"])
-        poll = status.get("poll")
-        
-        if not poll:
-            return ""
-
-        votos = [option["votes_count"] for option in poll["options"]]
-        max_votos = max(votos)
-        
-        if max_votos == 0:
-            ganadora_idx = random.randint(0, len(poll["options"]) - 1)
-        else:
-            ganadora_idx = votos.index(max_votos)
-
-        opcion_elegida = estado["opciones_ultima_encuesta"][ganadora_idx]
-        efectos = opcion_elegida.get("efectos", {})
-
-        for clave, cambio in efectos.items():
-            if clave in estado:
-                estado[clave] += cambio
-                if clave in ["suministros", "barricadas", "moral"]:
-                    estado[clave] = max(0, min(100, estado[clave]))
-                elif clave == "poblacion":
-                    estado[clave] = max(0, estado[clave])
-
-        return f"📊 **Resolución decisión anterior:** Ganó la opción '{opcion_elegida['texto']}' con {votos[ganadora_idx]} voto(s).\n\n"
+        total, lista = obtener_datos_comunidad(client)
     except Exception as e:
-        print(f"Error al leer la encuesta anterior: {e}")
-        return ""
+        # Los seguidores no son críticos: el juego sigue y lo que falte se cuenta al día siguiente
+        print(f"⚠️ No se pudo leer la comunidad (seguidores): {e}")
+        return anuncios, [], encuesta_nueva
+
+    ids_lista = [i for i, _ in lista]
+
+    # Primera ejecución con esta versión: solo cuentan los seguidores que lleguen a partir de ahora
+    if estado["seguidores_base"] is None:
+        estado["seguidores_base"] = total
+        estado["seguidores_saludados"] = ids_lista[:MAX_IDS_RECORDADOS]
+        print(f"Comunidad inicializada: {total} seguidores de partida.")
+        return anuncios, [], encuesta_nueva
+
+    # Bienvenidas: seguidores que aún no estaban registrados
+    conocidos = [str(i) for i in estado["seguidores_saludados"]]
+    nuevos = [(i, acct) for i, acct in lista if i not in set(conocidos)]
+    estado["seguidores_saludados"] = ([i for i, _ in nuevos] + conocidos)[:MAX_IDS_RECORDADOS]
+    accts_nuevos = [acct for _, acct in nuevos]
+
+    # Progreso: marca máxima de seguidores nuevos (si alguien deja de seguir no se pierde lo logrado)
+    estado["seguidores_progreso"] = max(estado["seguidores_progreso"], total - estado["seguidores_base"])
+    progreso = estado["seguidores_progreso"]
+
+    # 1) Seguidores = supervivientes: cada 10 seguidores nuevos llegan 3 personas
+    bloques = progreso // SEGUIDORES_POR_BLOQUE
+    if bloques > estado["bloques_pagados"]:
+        extra = (bloques - estado["bloques_pagados"]) * POBLACION_POR_BLOQUE
+        estado["poblacion"] += extra
+        estado["bloques_pagados"] = bloques
+        anuncios.append(
+            f"🎒 ¡La comunidad crece! Llegan {extra} supervivientes más al refugio "
+            f"(+{POBLACION_POR_BLOQUE} de población por cada {SEGUIDORES_POR_BLOQUE} seguidores nuevos)."
+        )
+
+    # 2) Hitos cada 25 seguidores nuevos
+    hitos_alcanzados = progreso // SEGUIDORES_POR_HITO
+    for k in range(estado["hitos_reclamados"] + 1, hitos_alcanzados + 1):
+        hito = HITOS.get(k, HITO_GENERICO)
+        aplicar_efectos(estado, hito["efectos"])
+        anuncios.append(texto_hito(k, hito))
+        if hito.get("encuesta"):
+            estado["encuestas_desbloqueadas"].append(k)
+            encuesta_nueva = hito["encuesta"]
+    estado["hitos_reclamados"] = max(estado["hitos_reclamados"], hitos_alcanzados)
+
+    return anuncios, accts_nuevos, encuesta_nueva
+
+
+def encuestas_disponibles(estado):
+    """Encuestas base + las desbloqueadas por hitos (estas pesan el doble para que se vean)."""
+    pool = list(OPCIONES_ENCUESTA)
+    for k in estado["encuestas_desbloqueadas"]:
+        hito = HITOS.get(k)
+        if hito and hito.get("encuesta"):
+            pool += [hito["encuesta"]] * 2
+    return pool
+
+
+def empaquetar(bloques):
+    """Junta bloques de texto en toots sin pasar del límite de caracteres."""
+    toots, actual = [], ""
+    for bloque in bloques:
+        candidato = f"{actual}\n\n{bloque}" if actual else bloque
+        if len(candidato) <= LIMITE_CARACTERES:
+            actual = candidato
+        else:
+            if actual:
+                toots.append(actual)
+            actual = bloque
+    if actual:
+        toots.append(actual)
+    return toots
+
+
+def bloques_saludos(accts):
+    """Bienvenidas con @mención (así le llega la notificación al seguidor). Máximo MAX_SALUDOS_POR_DIA."""
+    if not accts:
+        return []
+    cabecera = "👋 ¡NUEVOS SUPERVIVIENTES EN EL REFUGIO!"
+    elegidos = accts[:MAX_SALUDOS_POR_DIA]
+    plantillas = random.sample(SALUDOS, len(elegidos))  # sin repetir variante el mismo día
+    lineas = [plantilla.format(u="@" + acct) for acct, plantilla in zip(elegidos, plantillas)]
+    # La cabecera va pegada a la primera bienvenida para que nunca quede sola al final de un toot
+    bloques = [f"{cabecera}\n\n{lineas[0]}"] + lineas[1:]
+    resto = len(accts) - len(elegidos)
+    if resto > 0:
+        bloques.append(f"🧟 …y {resto} supervivientes más que también se han unido. ¡Gracias a todos!")
+    return bloques
+
+
+def construir_toots_comunidad(anuncios, accts):
+    """Anuncios (población, hitos) + bienvenidas, repartidos en los toots que hagan falta."""
+    return empaquetar(anuncios + bloques_saludos(accts))
+
+
+def comprobar_longitud(*textos):
+    for i, texto in enumerate(textos, start=1):
+        if len(texto) > LIMITE_CARACTERES:
+            raise ValueError(
+                f"El toot {i} tiene {len(texto)} caracteres y el límite es {LIMITE_CARACTERES}. "
+                "No se ha publicado nada."
+            )
+
 
 def main():
-    client = obtener_cliente_mastodon()
     estado = cargar_estado()
 
-    # 1. Comprobar condición de Game Over previa
-    if estado["poblacion"] <= 0 or estado["suministros"] <= 0 or estado["moral"] <= 0:
-        texto_game_over = (
-            f"💀 **GAME OVER - DÍA {estado['dia']}** 💀\n\n"
-            "La aldea ha sucumbido al apocalipsis. Los suministros, la moral o la población se han agotado por completo. "
-            "Los pocos supervivientes se han dispersado en la oscuridad.\n\n"
-            "#ApocalipsisZombi #GameOver #MastodonBot"
-        )
-        client.status_post(texto_game_over)
+    # 0. Partida ya terminada: no publicar nada más
+    if estado["terminado"]:
+        print("La partida ha terminado. Para empezar otra, restaura estado.json.")
         return
 
-    # 2. Resolver la encuesta del día anterior
-    texto_resolucion = resolver_encuesta_anterior(client, estado)
+    client = obtener_cliente_mastodon()
 
-    # 3. Procesar el evento nocturno aleatorio
+    # 1. Resolver la encuesta del día anterior
+    try:
+        texto_resolucion = resolver_encuesta_anterior(client, estado)
+    except EncuestaAbierta as e:
+        print(e)
+        return
+
+    # 2. Comunidad: seguidores nuevos, hitos y bienvenidas (antes del evento nocturno)
+    anuncios, accts_nuevos, encuesta_desbloqueada = procesar_comunidad(client, estado)
+
+    # 3. Evento nocturno aleatorio
     texto_evento = procesar_evento_nocturno(estado)
 
-    # 4. Seleccionar nueva encuesta para hoy
-    encuesta_hoy = random.choice(OPCIONES_ENCUESTA)
-    opciones_texto = [opc["texto"] for opc in encuesta_hoy["opciones"]]
-
-    # 5. Incrementar el día
+    # 4. Nuevo día y comprobación de Game Over (con los efectos ya aplicados)
     estado["dia"] += 1
+    game_over = hay_game_over(estado)
 
-    # 6. Construir el informe diario en el post
-    informe = (
-        f"🧟‍♂️ **INFORME DE SUPERVIVENCIA - DÍA {estado['dia']}**\n\n"
+    # 5. Construir los toots (sin Markdown: Mastodon no lo interpreta)
+    toot_1 = (
+        f"🧟‍♂️ INFORME DE SUPERVIVENCIA - DÍA {estado['dia']}\n\n"
         f"{texto_resolucion}"
-        f"{texto_evento}\n\n"
-        f"📋 **ESTADO DEL REFUGIO:**\n"
+        f"{texto_evento}"
+    )
+    bloque_estado = (
+        f"📋 ESTADO DEL REFUGIO:\n"
         f"👥 Población: {estado['poblacion']} personas\n"
         f"🥖 Suministros: {estado['suministros']}%\n"
         f"🧱 Barricadas: {estado['barricadas']}%\n"
         f"🕯️ Moral: {estado['moral']}%\n\n"
-        f"❓ **DECISIÓN PARA HOY:** {encuesta_hoy['pregunta']}\n\n"
-        f"#ApocalipsisZombi #Supervivencia #MastodonBot"
     )
 
-    # 7. Publicar encuesta en Mastodon (duración 86400 segundos = 24 horas)
-    poll = client.make_poll(options=opciones_texto, expires_in=86400)
-    nuevo_post = client.status_post(status=informe, poll=poll)
+    if game_over:
+        toot_2 = (
+            f"{bloque_estado}"
+            f"💀 GAME OVER - DÍA {estado['dia']} 💀\n\n"
+            "La aldea ha sucumbido al apocalipsis. Los suministros, la moral o la población "
+            "se han agotado por completo. Los pocos supervivientes se han dispersado en la oscuridad.\n\n"
+            "#ApocalipsisZombi #GameOver #MastodonBot"
+        )
+        comprobar_longitud(toot_1, toot_2)
 
-    # 8. Actualizar IDs de seguimiento y guardar estado
-    estado["ultima_encuesta_id"] = nuevo_post["id"]
+        primer_post = client.status_post(status=toot_1, language="es")
+        client.status_post(status=toot_2, in_reply_to_id=primer_post["id"], language="es")
+
+        estado["terminado"] = True
+        estado["ultima_encuesta_id"] = None
+        estado["opciones_ultima_encuesta"] = []
+        guardar_estado(estado)
+        return
+
+    # 6. Nueva encuesta para hoy (si se acaba de desbloquear una por un hito, es la de hoy)
+    encuesta_hoy = encuesta_desbloqueada or random.choice(encuestas_disponibles(estado))
+    opciones_texto = [opc["texto"] for opc in encuesta_hoy["opciones"]]
+
+    toots_comunidad = construir_toots_comunidad(anuncios, accts_nuevos)
+
+    toot_encuesta = (
+        f"{bloque_estado}"
+        f"❓ DECISIÓN PARA HOY: {encuesta_hoy['pregunta']}\n\n"
+        f"#ApocalipsisZombi #Supervivencia #MastodonBot"
+    )
+    # Se comprueba todo antes de publicar para no dejar el hilo a medias por longitud
+    comprobar_longitud(toot_1, *toots_comunidad, toot_encuesta)
+
+    # 7. Publicar el hilo: informe -> novedades de la comunidad (si hay) -> estado + encuesta
+    anterior = client.status_post(status=toot_1, language="es")["id"]
+    for texto in toots_comunidad:
+        anterior = client.status_post(status=texto, in_reply_to_id=anterior, language="es")["id"]
+
+    poll = client.make_poll(options=opciones_texto, expires_in=DURACION_ENCUESTA)
+    post_encuesta = client.status_post(
+        status=toot_encuesta,
+        in_reply_to_id=anterior,
+        poll=poll,
+        language="es"
+    )
+
+    # 8. Guardar estado (el id de seguimiento es el del toot que lleva la encuesta)
+    estado["ultima_encuesta_id"] = post_encuesta["id"]
     estado["opciones_ultima_encuesta"] = encuesta_hoy["opciones"]
     guardar_estado(estado)
+
 
 if __name__ == "__main__":
     main()
