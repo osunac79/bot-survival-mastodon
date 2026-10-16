@@ -238,6 +238,174 @@ OPCIONES_ENCUESTA = [
             {"texto": "📦 Darles comida y pedirles que se vayan", "efectos": {"suministros": -5, "moral": 5}},
             {"texto": "🚪 Rechazarlos tajantemente", "efectos": {"moral": -10, "barricadas": 5}}
         ]
+    },
+
+    # --- Racionamiento y gestión de recursos ---
+    {
+        "pregunta": "Las reservas de comida duran cuatro días. ¿Cómo comemos hoy?",
+        "opciones": [
+            {"texto": "🍽️ Una comida caliente al día", "efectos": {"suministros": 10, "moral": 15}},
+            {"texto": "🍞 Raciones frías y abundantes", "efectos": {"suministros": 20, "moral": -10}},
+            {"texto": "🥫 Guardarlo todo para el día de la crisis", "efectos": {"suministros": 5, "moral": -15}}
+        ]
+    },
+    {
+        "pregunta": "Ha aparecido un alijo de material médico escondido. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "💊 Repartirlo entre los heridos", "efectos": {"suministros": 10, "poblacion": -1, "moral": 5}},
+            {"texto": "🧠 Guardarlo bajo llave para emergencias", "efectos": {"suministros": 20, "moral": -5}},
+            {"texto": "🤝 Devolverlo al lugar donde lo encontramos", "efectos": {"suministros": 10, "moral": 15}}
+        ]
+    },
+    {
+        "pregunta": "El pozo del patio da agua turbia. ¿Cómo seguimos bebiendo?",
+        "opciones": [
+            {"texto": "💧 Cavar un pozo nuevo en el monte", "efectos": {"suministros": 15, "barricadas": -5}},
+            {"texto": "🧪 Hervir y filtrar el agua vieja", "efectos": {"suministros": 10, "moral": -10}},
+            {"texto": "🚱 Racionar el agua al máximo", "efectos": {"suministros": 5, "moral": -15}}
+        ]
+    },
+    {
+        "pregunta": "El almacén está amontonado y no se encuentra nada. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "📦 Vaciarlo todo y hacer inventario", "efectos": {"suministros": 15, "moral": -10}},
+            {"texto": "🏷️ Dejarlo como está, no hay tiempo", "efectos": {"suministros": 5, "moral": 5}},
+            {"texto": "🛒 Ir a reponer las reservas al Pueblo", "efectos": {"suministros": 25, "barricadas": -10, "moral": -5}}
+        ]
+    },
+    {
+        "pregunta": "Un vecino guarda comida bajo su catre. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "⚖️ Repartirla según las necesidades", "efectos": {"suministros": 15, "poblacion": -1, "moral": -5}},
+            {"texto": "🔍 Quitársela sin darle explicaciones", "efectos": {"suministros": 20, "moral": -20}},
+            {"texto": "😶 Dejarlo como está y no decir nada", "efectos": {"suministros": 10, "moral": 10}}
+        ]
+    },
+    {
+        "pregunta": "El gasoil del generador se acaba. ¿Qué apagamos?",
+        "opciones": [
+            {"texto": "💡 Apagar los focos del perímetro", "efectos": {"barricadas": -15, "suministros": 15}},
+            {"texto": "📻 Dejar la radio y apagar lo demás", "efectos": {"moral": 10, "suministros": 5, "barricadas": -5}},
+            {"texto": "🔇 Apagar todo hasta nuevo aviso", "efectos": {"suministros": 20, "moral": -15}}
+        ]
+    },
+
+    # --- Dilemas sociales y de comunidad ---
+    {
+        "pregunta": "Un grupo interno quiere echar a los recién llegados. ¿Qué dices?",
+        "opciones": [
+            {"texto": "🗳️ Votamos todos y respetamos el fallo", "efectos": {"moral": 15, "poblacion": -2}},
+            {"texto": "🗣️ Que la asamblea lo discuta primero", "efectos": {"moral": 10, "suministros": -5}},
+            {"texto": "✊ Defender los muros a cualquier precio", "efectos": {"barricadas": 20, "moral": -20, "poblacion": -2}}
+        ]
+    },
+    {
+        "pregunta": "El centinela lleva tres noches sin dormir. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "😴 Relevarlo con quien sea", "efectos": {"moral": 15, "barricadas": -5}},
+            {"texto": "☕ Que aguante un par de noches más", "efectos": {"barricadas": 5, "moral": -15}},
+            {"texto": "🛌 Montar guardias dobles de día", "efectos": {"suministros": -10, "moral": 10, "barricadas": 5}}
+        ]
+    },
+    {
+        "pregunta": "Hay fiebre alta en el módulo de los niños. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "🚧 Aislar por completo el módulo", "efectos": {"poblacion": -1, "moral": 10, "suministros": -5}},
+            {"texto": "💉 Tratarles aquí con los pocos que quedan", "efectos": {"suministros": 10, "poblacion": -2, "moral": -15}},
+            {"texto": "🤫 No decir nada y esperar a ver qué pasa", "efectos": {"poblacion": -3, "moral": -10}}
+        ]
+    },
+    {
+        "pregunta": "Alguien propone repartir las armas a partes iguales. ¿Qué haces?",
+        "opciones": [
+            {"texto": "✅ Repartir las armas a partes iguales", "efectos": {"moral": 20, "barricadas": -15}},
+            {"texto": "🛡️ Mantener el arsenal en la guardia", "efectos": {"barricadas": 15, "moral": -10}},
+            {"texto": "📣 Someter la propuesta a asamblea", "efectos": {"moral": 5, "suministros": -5}}
+        ]
+    },
+    {
+        "pregunta": "Media aldea se quiere ir hacia la ciudad. ¿Qué decide el refugio?",
+        "opciones": [
+            {"texto": "🗳️ Dejarlos marchar en libertad", "efectos": {"moral": 15, "suministros": -15}},
+            {"texto": "🚫 Prohibir la salida a todo el mundo", "efectos": {"poblacion": -2, "moral": -15, "barricadas": 5}},
+            {"texto": "🩹 Hacer una expedición con ellos", "efectos": {"poblacion": -4, "moral": -20, "suministros": 10}}
+        ]
+    },
+
+    # --- Exploración y expediciones ---
+    {
+        "pregunta": "Una baliza se enciende al sur, en mitad de la noche. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "🚗 Ir con el vehículo y bien armados", "efectos": {"suministros": 30, "barricadas": -15}},
+            {"texto": "🚶 Ir a pie y sin hacer ruido", "efectos": {"suministros": 10, "poblacion": -1, "moral": 5}},
+            {"texto": "📡 Apuntar las coordenadas y seguir con lo nuestro", "efectos": {"moral": 5, "barricadas": 5}}
+        ]
+    },
+    {
+        "pregunta": "Una patrulla ha encontrado una granja con el silo lleno. ¿Cómo lo explotamos?",
+        "opciones": [
+            {"texto": "🐂 Llevarnos los animales", "efectos": {"suministros": 15, "poblacion": 2, "moral": 5}},
+            {"texto": "🌾 Vaciar el silo hasta el fondo", "efectos": {"suministros": 30, "barricadas": -10, "moral": -5}},
+            {"texto": "🔑 Quedarnos con la llave y volver luego", "efectos": {"suministros": 5, "moral": 10}}
+        ]
+    },
+    {
+        "pregunta": "Hay un mapa de una ruta de suministros en un coche abandonado. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "🗺️ Seguirla en convoy protegido", "efectos": {"suministros": 25, "barricadas": -10}},
+            {"texto": "🧭 Mandar a un par de exploradores", "efectos": {"suministros": 15, "poblacion": -1}},
+            {"texto": "🤥 Desconfiar de una ruta tan fácil", "efectos": {"suministros": 5, "moral": -5}}
+        ]
+    },
+    {
+        "pregunta": "Una horda bloquea el puente del río. ¿Pasamos o damos media vuelta?",
+        "opciones": [
+            {"texto": "🛡️ Cruzar con las barricadas montadas", "efectos": {"suministros": 20, "barricadas": -10}},
+            {"texto": "🏃 Cruzar a paso ligero y rápido", "efectos": {"suministros": 30, "poblacion": -3}},
+            {"texto": "🔙 Dar media vuelta y buscar otro puente", "efectos": {"suministros": 5, "moral": -10, "barricadas": 5}}
+        ]
+    },
+    {
+        "pregunta": "La patrulla vuelve con un rehén infectado. ¿Qué hacemos con él?",
+        "opciones": [
+            {"texto": "💊 Tratarlo y aislarlo en la enfermería", "efectos": {"suministros": -15, "poblacion": -1, "moral": 10}},
+            {"texto": "🔫 Rematarlo para evitar el riesgo", "efectos": {"moral": -15, "barricadas": 10}},
+            {"texto": "🚪 Echarlo del refugio y cerrar la puerta", "efectos": {"poblacion": -2, "moral": -5}}
+        ]
+    },
+
+    # --- Decisiones oscuras y épicas ---
+    {
+        "pregunta": "Un drone militar lleva días sobrevolando el refugio. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "📡 Responder a sus señales", "efectos": {"poblacion": 5, "suministros": 20, "moral": -5}},
+            {"texto": "🕵️ Apagar todo y hacerse el muerto", "efectos": {"moral": -5, "barricadas": 5}},
+            {"texto": "💣 Dispararle antes de que avise a nadie", "efectos": {"poblacion": -3, "barricadas": -15, "moral": 10}}
+        ]
+    },
+    {
+        "pregunta": "Una empresa militar ofrece comprar al asentamiento entero. ¿Aceptamos?",
+        "opciones": [
+            {"texto": "💼 Firmar: contando, la aldea sobrevive", "efectos": {"suministros": 35, "moral": -20, "poblacion": -2}},
+            {"texto": "⚖️ Negociar mejores condiciones", "efectos": {"suministros": 20, "moral": -10, "poblacion": -1}},
+            {"texto": "🏳️ Esconderse y no dar señales de vida", "efectos": {"moral": 15, "barricadas": -10}}
+        ]
+    },
+    {
+        "pregunta": "Un grupo armado exige el mapa de los refugios cercanos. ¿Negociamos?",
+        "opciones": [
+            {"texto": "🗺️ Entregar el mapa a cambio de víveres", "efectos": {"suministros": 25, "poblacion": -1, "moral": -15}},
+            {"texto": "🎭 Entregar un mapa falso y rezar", "efectos": {"suministros": -10, "moral": 5, "barricadas": -5}},
+            {"texto": "🔥 Atacar antes de que se repongan", "efectos": {"barricadas": 15, "suministros": -10, "moral": 10}}
+        ]
+    },
+    {
+        "pregunta": "Han encontrado un laboratorio abandonado en la ciudad. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "🔬 Buscar una cura entre los hallazgos", "efectos": {"poblacion": 3, "suministros": -10, "moral": 10}},
+            {"texto": "🔥 Prenderle fuego y no mirar atrás", "efectos": {"barricadas": 10, "suministros": 5, "moral": -10}},
+            {"texto": "🎒 Llevarnos el material y cerrar la puerta", "efectos": {"suministros": 20, "barricadas": -5, "moral": -5}}
+        ]
     }
 ]
 

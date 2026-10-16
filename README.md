@@ -72,6 +72,57 @@ Seguir al bot tiene efecto directo en la partida. Solo cuentan los seguidores **
 
 > El token de Mastodon necesita los permisos `read` y `write:statuses` (con `read` basta para consultar los seguidores).
 
+### 🗳️ Decisiones recurrentes (23 encuestas)
+
+Cada día el bot sortea una de las 23 encuestas base. Las opciones están equilibradas: casi todas dan
+un recurso fuerte a cambio de sacrificar otro, más una opción "tranquila" que aporta poco pero no cuesta nada.
+
+**Recursos y racionamiento**
+
+| Pregunta | Opciones |
+|---|---|
+| ¿Qué prioridad le damos a las tareas de hoy? | 4 |
+| Se ha avistado un convoy abandonado a 2 km. ¿Cómo procedemos? | 3 |
+| Las reservas de comida duran cuatro días. ¿Cómo comemos hoy? | 3 |
+| Ha aparecido un alijo de material médico escondido. ¿Qué hacemos? | 3 |
+| El pozo del patio da agua turbia. ¿Cómo seguimos bebiendo? | 3 |
+| El almacén está amontonado y no se encuentra nada. ¿Qué hacemos? | 3 |
+| Un vecino guarda comida bajo su catre. ¿Qué hacemos? | 3 |
+| El gasoil del generador se acaba. ¿Qué apagamos? | 3 |
+
+**Dilemas sociales y de comunidad**
+
+| Pregunta | Opciones |
+|---|---|
+| Un grupo de desconocidos pide refugio en la entrada. ¿Qué decisión tomamos? | 3 |
+| Un grupo interno quiere echar a los recién llegados. ¿Qué dices? | 3 |
+| El centinela lleva tres noches sin dormir. ¿Qué hacemos? | 3 |
+| Hay fiebre alta en el módulo de los niños. ¿Qué hacemos? | 3 |
+| Alguien propone repartir las armas a partes iguales. ¿Qué haces? | 3 |
+| Media aldea se quiere ir hacia la ciudad. ¿Qué decide el refugio? | 3 |
+
+**Exploración y expediciones**
+
+| Pregunta | Opciones |
+|---|---|
+| Una baliza se enciende al sur, en mitad de la noche. ¿Qué hacemos? | 3 |
+| Una patrulla ha encontrado una granja con el silo lleno. ¿Cómo lo explotamos? | 3 |
+| Hay un mapa de una ruta de suministros en un coche abandonado. ¿Qué hacemos? | 3 |
+| Una horda bloquea el puente del río. ¿Pasamos o damos media vuelta? | 3 |
+| La patrulla vuelve con un rehén infectado. ¿Qué hacemos con él? | 3 |
+
+**Decisiones oscuras y épicas**
+
+| Pregunta | Opciones |
+|---|---|
+| Un drone militar lleva días sobrevolando el refugio. ¿Qué hacemos? | 3 |
+| Una empresa militar ofrece comprar al asentamiento entero. ¿Aceptamos? | 3 |
+| Un grupo armado exige el mapa de los refugios cercanos. ¿Negociamos? | 3 |
+| Han encontrado un laboratorio abandonado en la ciudad. ¿Qué hacemos? | 3 |
+
+A estas 23 se suman las 8 encuestas que desbloquean los hitos de comunidad, que además salen con el doble
+de probabilidad una vez desbloqueadas.
+
 ### Empezar una partida nueva
 
 Cuando la partida termina (Game Over) el bot deja de publicar. Para empezar otra, sustituye el contenido de `estado.json` por el del repositorio original (día 0, población 12, suministros 80, barricadas 100, moral 75, `terminado` en `false` y los campos de comunidad a cero).
