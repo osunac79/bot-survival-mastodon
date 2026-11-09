@@ -72,7 +72,7 @@ Seguir al bot tiene efecto directo en la partida. Solo cuentan los seguidores **
 
 > El token de Mastodon necesita los permisos `read` y `write:statuses` (con `read` basta para consultar los seguidores).
 
-### 🗳️ Decisiones recurrentes (23 encuestas)
+### 🗳️ Decisiones recurrentes (27 encuestas)
 
 Cada día el bot sortea una de las 23 encuestas base. Las opciones están equilibradas: casi todas dan
 un recurso fuerte a cambio de sacrificar otro, más una opción "tranquila" que aporta poco pero no cuesta nada.
@@ -120,8 +120,21 @@ un recurso fuerte a cambio de sacrificar otro, más una opción "tranquila" que 
 | Un grupo armado exige el mapa de los refugios cercanos. ¿Negociamos? | 3 |
 | Han encontrado un laboratorio abandonado en la ciudad. ¿Qué hacemos? | 3 |
 
-A estas 23 se suman las 8 encuestas que desbloquean los hitos de comunidad, que además salen con el doble
+A estas 27 se suman las 8 encuestas que desbloquean los hitos de comunidad, que además salen con el doble
 de probabilidad una vez desbloqueadas.
+
+### 🌊 Encuestas de la playa (4 decisiones costeras)
+
+Decisiones positivas para el refugio costero. Todas las opciones solo suman recursos, sin costes ocultos.
+
+| Pregunta | Opciones |
+|---|---|
+| La marea baja dejó expuestos almacenes abandonados en la orilla. ¿Qué recuperamos hoy? | 3 |
+| ¿Qué aprovechamos de la costa para recargar el refugio? | 3 |
+| Un grupo de náufragos llega a la playa. ¿Qué hacemos? | 3 |
+| La red de pesca está anclada en la orilla. ¿Qué hacemos al llegar la marea alta? | 3 |
+
+Estas 4 se sortean como las demás (más la probabilidad de las de hito), junto al resto de encuestas.
 
 ### Empezar una partida nueva
 

@@ -406,6 +406,40 @@ OPCIONES_ENCUESTA = [
             {"texto": "🔥 Prenderle fuego y no mirar atrás", "efectos": {"barricadas": 10, "suministros": 5, "moral": -10}},
             {"texto": "🎒 Llevarnos el material y cerrar la puerta", "efectos": {"suministros": 20, "barricadas": -5, "moral": -5}}
         ]
+    },
+    # --- La playa y el mar (refugio costero): solo decisiones positivas ---
+
+    {
+        "pregunta": "La marea baja dejó expuestos almacenes abandonados en la orilla. ¿Qué recuperamos hoy?",
+        "opciones": [
+            {"texto": "📦 Recoger los barcos en la bahía", "efectos": {"suministros": 25, "moral": 10}},
+            {"texto": "🛥️ Buscar bodegas en la orilla", "efectos": {"suministros": 20, "poblacion": 2}},
+            {"texto": "🏖️ Abrir el viejo faro en busca de raciones", "efectos": {"suministros": 15, "barricadas": 10}}
+        ]
+    },
+    {
+        "pregunta": "¿Qué aprovechamos de la costa para recargar el refugio?",
+        "opciones": [
+            {"texto": "🎣 Recoger peces y frutos del mar", "efectos": {"suministros": 20, "moral": 10}},
+            {"texto": "💧 Purificar agua de mar en los tanques", "efectos": {"suministros": 25, "poblacion": 2}},
+            {"texto": "🏕️ Acampar en las dunas y forrar el suelo", "efectos": {"suministros": 15, "moral": 15, "barricadas": 10}}
+        ]
+    },
+    {
+        "pregunta": "Un grupo de náufragos llega a la playa. ¿Qué hacemos?",
+        "opciones": [
+            {"texto": "⛵ Acogerlos y reparar el casco", "efectos": {"poblacion": 3, "suministros": 15, "moral": 15}},
+            {"texto": "🔧 Reutilizar sus herramientas y materiales", "efectos": {"barricadas": 15, "suministros": 15, "moral": 10}},
+            {"texto": "🔫 Usar su bengola para el faro", "efectos": {"barricadas": 20, "moral": 15}}
+        ]
+    },
+    {
+        "pregunta": "La red de pesca está anclada en la orilla. ¿Qué hacemos al llegar la marea alta?",
+        "opciones": [
+            {"texto": "🎣 Lanzar la red durante la marea alta", "efectos": {"suministros": 20, "poblacion": 2}},
+            {"texto": "⛵ Remolcar los recursos a la bahía", "efectos": {"suministros": 25, "moral": 10, "poblacion": 1}},
+            {"texto": "🌊 Usar la corriente para mover suministros", "efectos": {"suministros": 15, "barricadas": 10, "moral": 10}}
+        ]
     }
 ]
 
